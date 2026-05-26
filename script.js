@@ -10,6 +10,8 @@ const weatherTemp = document.querySelector("[data-weather-temp]");
 const weatherCondition = document.querySelector("[data-weather-condition]");
 const moonImage = document.querySelector("[data-moon-image]");
 const moonPhase = document.querySelector("[data-moon-phase]");
+const shaderCanvas = document.querySelector("[data-shader-canvas]");
+const particleCanvas = document.querySelector("[data-particle-canvas]");
 const sectionDropdown = document.querySelector("[data-section-dropdown]");
 const sectionToggle = document.querySelector("[data-section-toggle]");
 const sectionCurrent = document.querySelector("[data-section-current]");
@@ -689,6 +691,535 @@ function setupLiquidGlass() {
 
 setupLiquidGlass();
 
+function setupBackgroundShader() {
+  if (!shaderCanvas) {
+    return;
+  }
+
+  const gl = shaderCanvas.getContext("webgl", {
+    alpha: true,
+    antialias: false,
+    depth: false,
+    stencil: false,
+    powerPreference: "low-power",
+  });
+
+  if (!gl) {
+    return;
+  }
+
+  const vertexSource = `
+    attribute vec2 a_position;
+    void main() {
+      gl_Position = vec4(a_position, 0.0, 1.0);
+    }
+  `;
+  const fragmentSource = `
+    precision mediump float;
+    uniform vec2 u_resolution;
+    uniform float u_time;
+
+    float orb(vec2 point, vec2 center, float size) {
+      float distanceToCenter = length(point - center);
+      return 1.0 - smoothstep(0.0, size, distanceToCenter);
+    }
+
+    float streak(vec2 point, float seed) {
+      float cycle = fract(u_time * 0.045 + seed);
+      float visible = smoothstep(0.04, 0.12, cycle) * (1.0 - smoothstep(0.42, 0.72, cycle));
+      vec2 direction = normalize(vec2(1.0, -0.34));
+      vec2 normal = vec2(-direction.y, direction.x);
+      vec2 center = vec2(-1.65 + cycle * 3.45, 0.78 - cycle * 0.92 + sin(seed * 8.0) * 0.48);
+      vec2 delta = point - center;
+      float along = dot(delta, direction);
+      float across = abs(dot(delta, normal));
+      float tail = (1.0 - smoothstep(-0.04, 0.36, along)) * smoothstep(-0.08, 0.22, along);
+      float slim = 1.0 - smoothstep(0.0, 0.026, across);
+      return tail * slim * visible;
+    }
+
+    void main() {
+      vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+      vec2 p = uv * 2.0 - 1.0;
+      p.x *= u_resolution.x / u_resolution.y;
+
+      float slow = u_time * 0.12;
+      float glow = 0.0;
+      glow += orb(p, vec2(sin(slow) * 0.52, cos(slow * 0.7) * 0.34), 1.05) * 0.42;
+      glow += orb(p, vec2(cos(slow * 0.8) * -0.62, sin(slow * 0.55) * 0.42), 0.92) * 0.34;
+      glow += orb(p, vec2(0.08, -0.18), 1.35) * 0.18;
+      float shoot = streak(p, 0.18) + streak(p + vec2(0.22, -0.14), 0.68) * 0.6;
+      glow += shoot * 0.48;
+
+      float sheen = sin((p.x * 2.4 + p.y * 1.6) + u_time * 0.18) * 0.5 + 0.5;
+      vec3 lavender = vec3(0.52, 0.34, 1.0);
+      vec3 ice = vec3(0.78, 0.70, 1.0);
+      vec3 color = mix(lavender, ice, sheen) * glow;
+      color += vec3(0.76, 0.68, 1.0) * shoot * 0.72;
+
+      gl_FragColor = vec4(color, glow * 0.42 + shoot * 0.24);
+    }
+  `;
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const frameInterval = 1000 / 30;
+  let animationId = 0;
+  let lastFrame = 0;
+  let startTime = performance.now();
+
+  function createShader(type, source) {
+    const shader = gl.createShader(type);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    return gl.getShaderParameter(shader, gl.COMPILE_STATUS) ? shader : null;
+  }
+
+  const vertexShader = createShader(gl.VERTEX_SHADER, vertexSource);
+  const fragmentShader = createShader(gl.FRAGMENT_SHADER, fragmentSource);
+
+  if (!vertexShader || !fragmentShader) {
+    return;
+  }
+
+  const program = gl.createProgram();
+  gl.attachShader(program, vertexShader);
+  gl.attachShader(program, fragmentShader);
+  gl.linkProgram(program);
+
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    return;
+  }
+
+  const positionBuffer = gl.createBuffer();
+  const positionLocation = gl.getAttribLocation(program, "a_position");
+  const resolutionLocation = gl.getUniformLocation(program, "u_resolution");
+  const timeLocation = gl.getUniformLocation(program, "u_time");
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+    -1, -1,
+     1, -1,
+    -1,  1,
+     1,  1,
+  ]), gl.STATIC_DRAW);
+
+  function resizeShader() {
+    const pixelRatio = Math.min(window.devicePixelRatio || 1, 1.25);
+    const scale = window.innerWidth < 720 ? 0.5 : 0.62;
+    const width = Math.max(1, Math.min(960, Math.floor(window.innerWidth * pixelRatio * scale)));
+    const height = Math.max(1, Math.min(540, Math.floor(window.innerHeight * pixelRatio * scale)));
+
+    if (shaderCanvas.width !== width || shaderCanvas.height !== height) {
+      shaderCanvas.width = width;
+      shaderCanvas.height = height;
+      gl.viewport(0, 0, width, height);
+    }
+  }
+
+  function startShaderLoop() {
+    if (!animationId) {
+      animationId = window.requestAnimationFrame(renderShader);
+    }
+  }
+
+  function renderShader(now) {
+    animationId = 0;
+
+    if (document.hidden) {
+      return;
+    }
+
+    if (now - lastFrame < frameInterval) {
+      startShaderLoop();
+      return;
+    }
+
+    lastFrame = now;
+    resizeShader();
+    gl.useProgram(program);
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    gl.enableVertexAttribArray(positionLocation);
+    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+    gl.uniform2f(resolutionLocation, shaderCanvas.width, shaderCanvas.height);
+    gl.uniform1f(timeLocation, reducedMotion ? 0 : (now - startTime) * 0.001);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+    if (!reducedMotion) {
+      startShaderLoop();
+    }
+  }
+
+  window.addEventListener("resize", resizeShader, { passive: true });
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) {
+      startTime = performance.now();
+      lastFrame = 0;
+      startShaderLoop();
+    }
+  });
+
+  resizeShader();
+  startShaderLoop();
+}
+
+setupBackgroundShader();
+
+function setupParticleField() {
+  if (!particleCanvas) {
+    return;
+  }
+
+  const gl = particleCanvas.getContext("webgl", {
+    alpha: true,
+    antialias: false,
+    depth: false,
+    stencil: false,
+    powerPreference: "low-power",
+  });
+
+  if (!gl) {
+    return;
+  }
+
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const particleCount = window.innerWidth < 720 ? 96 : 138;
+  const floatsPerParticle = 6;
+  const particleData = new Float32Array(particleCount * floatsPerParticle);
+  const particles = [];
+  const pointer = { x: .5, y: .5, active: 0 };
+  const frameInterval = 1000 / 30;
+  let animationId = 0;
+  let lastFrame = 0;
+  let startTime = performance.now();
+  let pointScale = 1;
+
+  function seededRandom(index, salt) {
+    const value = Math.sin(index * 127.1 + salt * 311.7) * 43758.5453123;
+    return value - Math.floor(value);
+  }
+
+  for (let index = 0; index < particleCount; index += 1) {
+    const x = seededRandom(index, 1) * 2.18 - 1.09;
+    const y = seededRandom(index, 2) * 2.16 - 1.08;
+    const depth = Math.pow(seededRandom(index, 3), .72);
+    const size = 1.35 + seededRandom(index, 4) * 2.65;
+    const phase = seededRandom(index, 5) * Math.PI * 2;
+    const speed = .36 + seededRandom(index, 6) * .56;
+    const offset = index * floatsPerParticle;
+
+    particles.push({ x, y, depth });
+    particleData.set([x, y, depth, size, phase, speed], offset);
+  }
+
+  function createConstellationLines() {
+    const aspect = window.innerWidth / Math.max(window.innerHeight, 1);
+    const anchorCount = Math.min(window.innerWidth < 720 ? 24 : 34, particleCount);
+    const anchors = particles
+      .map((particle, index) => ({ ...particle, index }))
+      .sort((a, b) => b.depth - a.depth)
+      .slice(0, anchorCount);
+    const pairs = [];
+    const used = new Set();
+    const maxPairs = window.innerWidth < 720 ? 30 : 48;
+
+    anchors.forEach((anchor, anchorIndex) => {
+      const closest = anchors
+        .filter((candidate) => candidate.index !== anchor.index)
+        .map((candidate) => ({
+          candidate,
+          distance: Math.hypot((anchor.x - candidate.x) * aspect, anchor.y - candidate.y),
+        }))
+        .filter((item) => item.distance < .62)
+        .sort((a, b) => a.distance - b.distance)
+        .slice(0, anchorIndex % 5 === 0 ? 2 : 1);
+
+      closest.forEach(({ candidate }) => {
+        if (pairs.length / 2 >= maxPairs) {
+          return;
+        }
+
+        const first = Math.min(anchor.index, candidate.index);
+        const second = Math.max(anchor.index, candidate.index);
+        const key = `${first}:${second}`;
+
+        if (!used.has(key)) {
+          used.add(key);
+          pairs.push(first, second);
+        }
+      });
+    });
+
+    return new Uint16Array(pairs);
+  }
+
+  const lineIndices = createConstellationLines();
+  const vertexSource = `
+    precision mediump float;
+    attribute vec2 a_position;
+    attribute float a_depth;
+    attribute float a_size;
+    attribute float a_phase;
+    attribute float a_speed;
+    uniform float u_time;
+    uniform float u_aspect;
+    uniform float u_pointScale;
+    uniform vec3 u_pointer;
+    varying float v_depth;
+    varying float v_phase;
+    varying float v_twinkle;
+    varying float v_reaction;
+
+    void main() {
+      float depth = mix(0.24, 1.0, a_depth);
+      float time = u_time * a_speed;
+      vec2 position = a_position;
+      vec2 drift = vec2(
+        sin(time * 0.38 + a_phase * 1.71),
+        cos(time * 0.32 + a_phase * 1.23)
+      ) * 0.034 * depth;
+
+      vec2 pointerClip = vec2(u_pointer.x * 2.0 - 1.0, 1.0 - u_pointer.y * 2.0);
+      vec2 toPointer = vec2((position.x - pointerClip.x) * u_aspect, position.y - pointerClip.y);
+      float pointerDistance = length(toPointer);
+      float reaction = (1.0 - smoothstep(0.0, 0.48, pointerDistance)) * u_pointer.z;
+      vec2 direction = normalize(toPointer + vec2(0.0001, -0.0001));
+
+      position += drift;
+      position += vec2(direction.x / u_aspect, direction.y) * reaction * (0.052 + a_depth * 0.045);
+      position += pointerClip * u_pointer.z * (0.01 + a_depth * 0.018);
+
+      v_depth = a_depth;
+      v_phase = a_phase;
+      v_reaction = reaction;
+      v_twinkle = 0.72 + 0.28 * sin(u_time * (0.72 + a_speed * 0.35) + a_phase);
+
+      gl_Position = vec4(position, 0.0, 1.0);
+      gl_PointSize = a_size * (1.8 + a_depth * 2.8) * u_pointScale;
+    }
+  `;
+  const pointFragmentSource = `
+    precision mediump float;
+    varying float v_depth;
+    varying float v_phase;
+    varying float v_twinkle;
+    varying float v_reaction;
+
+    void main() {
+      vec2 point = gl_PointCoord - 0.5;
+      float radius = length(point) * 2.0;
+      float core = 1.0 - smoothstep(0.0, 0.32, radius);
+      float halo = 1.0 - smoothstep(0.18, 1.0, radius);
+      float glint = pow(max(0.0, 1.0 - length(point - vec2(-0.12, 0.15)) * 4.2), 4.0);
+      float depthAlpha = 0.34 + v_depth * 0.72;
+      float alpha = (core * 0.74 + halo * (0.18 + v_depth * 0.22) + glint * 0.28) * depthAlpha * v_twinkle;
+
+      vec3 lavender = vec3(0.57, 0.42, 1.0);
+      vec3 frost = vec3(1.0, 0.97, 1.0);
+      vec3 shine = vec3(0.82, 0.74, 1.0);
+      vec3 color = mix(lavender, frost, 0.42 + v_depth * 0.42);
+      color += shine * (glint * 0.42 + v_reaction * 0.24);
+      alpha *= 1.0 + v_reaction * 0.85;
+
+      if (alpha < 0.01) {
+        discard;
+      }
+
+      gl_FragColor = vec4(color, alpha * 0.66);
+    }
+  `;
+  const lineFragmentSource = `
+    precision mediump float;
+    uniform float u_time;
+    varying float v_depth;
+    varying float v_phase;
+    varying float v_twinkle;
+    varying float v_reaction;
+
+    void main() {
+      float pulse = 0.52 + 0.48 * sin(u_time * 0.48 + v_phase);
+      float alpha = (0.032 + v_depth * 0.072) * pulse * v_twinkle;
+      vec3 color = mix(vec3(0.48, 0.34, 0.92), vec3(0.9, 0.84, 1.0), v_depth);
+      gl_FragColor = vec4(color + v_reaction * 0.16, alpha * (1.0 + v_reaction * 1.5));
+    }
+  `;
+
+  function createShader(type, source) {
+    const shader = gl.createShader(type);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    return gl.getShaderParameter(shader, gl.COMPILE_STATUS) ? shader : null;
+  }
+
+  function createProgram(fragmentSource) {
+    const vertexShader = createShader(gl.VERTEX_SHADER, vertexSource);
+    const fragmentShader = createShader(gl.FRAGMENT_SHADER, fragmentSource);
+
+    if (!vertexShader || !fragmentShader) {
+      return null;
+    }
+
+    const program = gl.createProgram();
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+    gl.linkProgram(program);
+
+    return gl.getProgramParameter(program, gl.LINK_STATUS) ? program : null;
+  }
+
+  const pointProgram = createProgram(pointFragmentSource);
+  const lineProgram = createProgram(lineFragmentSource);
+
+  if (!pointProgram || !lineProgram) {
+    return;
+  }
+
+  function getState(program) {
+    return {
+      program,
+      attributes: {
+        position: gl.getAttribLocation(program, "a_position"),
+        depth: gl.getAttribLocation(program, "a_depth"),
+        size: gl.getAttribLocation(program, "a_size"),
+        phase: gl.getAttribLocation(program, "a_phase"),
+        speed: gl.getAttribLocation(program, "a_speed"),
+      },
+      uniforms: {
+        time: gl.getUniformLocation(program, "u_time"),
+        aspect: gl.getUniformLocation(program, "u_aspect"),
+        pointScale: gl.getUniformLocation(program, "u_pointScale"),
+        pointer: gl.getUniformLocation(program, "u_pointer"),
+      },
+    };
+  }
+
+  const pointState = getState(pointProgram);
+  const lineState = getState(lineProgram);
+  const particleBuffer = gl.createBuffer();
+  const lineBuffer = gl.createBuffer();
+  const stride = floatsPerParticle * Float32Array.BYTES_PER_ELEMENT;
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, particleBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, particleData, gl.STATIC_DRAW);
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, lineBuffer);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, lineIndices, gl.STATIC_DRAW);
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+  gl.disable(gl.DEPTH_TEST);
+  gl.clearColor(0, 0, 0, 0);
+
+  function enableAttribute(location, size, offset) {
+    if (location < 0) {
+      return;
+    }
+
+    gl.enableVertexAttribArray(location);
+    gl.vertexAttribPointer(location, size, gl.FLOAT, false, stride, offset);
+  }
+
+  function useState(state) {
+    gl.useProgram(state.program);
+    gl.bindBuffer(gl.ARRAY_BUFFER, particleBuffer);
+    enableAttribute(state.attributes.position, 2, 0);
+    enableAttribute(state.attributes.depth, 1, 2 * Float32Array.BYTES_PER_ELEMENT);
+    enableAttribute(state.attributes.size, 1, 3 * Float32Array.BYTES_PER_ELEMENT);
+    enableAttribute(state.attributes.phase, 1, 4 * Float32Array.BYTES_PER_ELEMENT);
+    enableAttribute(state.attributes.speed, 1, 5 * Float32Array.BYTES_PER_ELEMENT);
+  }
+
+  function setUniforms(state, time) {
+    if (state.uniforms.time) {
+      gl.uniform1f(state.uniforms.time, time);
+    }
+
+    if (state.uniforms.aspect) {
+      gl.uniform1f(state.uniforms.aspect, particleCanvas.width / Math.max(particleCanvas.height, 1));
+    }
+
+    if (state.uniforms.pointScale) {
+      gl.uniform1f(state.uniforms.pointScale, pointScale);
+    }
+
+    if (state.uniforms.pointer) {
+      gl.uniform3f(state.uniforms.pointer, pointer.x, pointer.y, pointer.active);
+    }
+  }
+
+  function resizeParticles() {
+    const pixelRatio = Math.min(window.devicePixelRatio || 1, 1.25);
+    const scale = window.innerWidth < 720 ? .68 : .78;
+    const width = Math.max(1, Math.min(1180, Math.floor(window.innerWidth * pixelRatio * scale)));
+    const height = Math.max(1, Math.min(760, Math.floor(window.innerHeight * pixelRatio * scale)));
+
+    pointScale = Math.max(1.2, Math.min(2.4, (width / Math.max(window.innerWidth, 1)) * 2.2));
+
+    if (particleCanvas.width !== width || particleCanvas.height !== height) {
+      particleCanvas.width = width;
+      particleCanvas.height = height;
+      gl.viewport(0, 0, width, height);
+    }
+  }
+
+  function renderParticles(now) {
+    animationId = 0;
+
+    if (document.hidden) {
+      return;
+    }
+
+    if (now - lastFrame < frameInterval) {
+      startParticleLoop();
+      return;
+    }
+
+    lastFrame = now;
+    resizeParticles();
+    pointer.active *= .93;
+    const time = reducedMotion ? 0 : (now - startTime) * 0.001;
+
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    if (lineIndices.length) {
+      useState(lineState);
+      setUniforms(lineState, time);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, lineBuffer);
+      gl.drawElements(gl.LINES, lineIndices.length, gl.UNSIGNED_SHORT, 0);
+    }
+
+    useState(pointState);
+    setUniforms(pointState, time);
+    gl.drawArrays(gl.POINTS, 0, particleCount);
+
+    if (!reducedMotion) {
+      startParticleLoop();
+    }
+  }
+
+  function startParticleLoop() {
+    if (!animationId) {
+      animationId = window.requestAnimationFrame(renderParticles);
+    }
+  }
+
+  window.addEventListener("pointermove", (event) => {
+    pointer.x = event.clientX / Math.max(window.innerWidth, 1);
+    pointer.y = event.clientY / Math.max(window.innerHeight, 1);
+    pointer.active = 1;
+  }, { passive: true });
+
+  window.addEventListener("resize", resizeParticles, { passive: true });
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) {
+      startTime = performance.now();
+      lastFrame = 0;
+      startParticleLoop();
+    }
+  });
+
+  resizeParticles();
+  startParticleLoop();
+}
+
+setupParticleField();
+
 const weatherDescriptions = {
   0: "clear",
   1: "mostly clear",
@@ -810,34 +1341,6 @@ function loadMoonPhase() {
 }
 
 loadMoonPhase();
-
-function spawnAmbientShootingStar() {
-  const star = document.createElement("span");
-  const startY = 12 + Math.random() * 62;
-  const startX = -28 - Math.random() * 18;
-  const duration = 1600 + Math.random() * 900;
-
-  star.className = "ambient-shooting-star";
-  star.style.setProperty("--shoot-x", `${startX}vw`);
-  star.style.setProperty("--shoot-y", `${startY}vh`);
-  star.style.setProperty("--shoot-width", `${120 + Math.random() * 70}px`);
-  star.style.setProperty("--shoot-angle", `${-20 - Math.random() * 10}deg`);
-  star.style.setProperty("--shoot-duration", `${duration}ms`);
-  document.body.append(star);
-
-  window.setTimeout(() => {
-    star.remove();
-  }, duration + 200);
-}
-
-function scheduleAmbientShootingStar() {
-  window.setTimeout(() => {
-    spawnAmbientShootingStar();
-    scheduleAmbientShootingStar();
-  }, 7000 + Math.random() * 9000);
-}
-
-scheduleAmbientShootingStar();
 
 function setNowPlayingMessage(status, track, artist, url = "https://www.last.fm") {
   if (nowStatus) {
