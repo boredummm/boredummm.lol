@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ソーヤー</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="loader" aria-label="Intro screen">
+    <div class="loader-stars"></div>
+    <div class="shooting-star shooting-star-one"></div>
+    <div class="shooting-star shooting-star-two"></div>
+    <div class="shooting-star shooting-star-three"></div>
+    <div class="loader-core">
+      <div class="constellation" aria-hidden="true">
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+      <p class="loader-title">ソーヤー</p>
+      <button class="start-button" type="button">click to start</button>
+      <div class="start-progress" aria-hidden="true"><span></span></div>
+    </div>
+  </div>
+  <div class="stars"></div>
+  <aside class="weather-chip" aria-live="polite">
+    <p class="weather-place">vancouver, wa</p>
+    <div class="weather-main">
+      <span data-weather-temp>--°</span>
+      <span data-weather-condition>loading</span>
+    </div>
+    <div class="moon-main">
+      <img class="moon-image" data-moon-image alt="">
+      <span data-moon-phase>moon phase</span>
+    </div>
+  </aside>
+  <nav class="section-menu" aria-label="site sections">
+    <div class="section-picker" data-section-dropdown>
+      <button class="section-toggle" type="button" aria-haspopup="listbox" aria-expanded="false" data-section-toggle>
+        <span class="section-label">section</span>
+        <span data-section-current>links</span>
+      </button>
+      <div class="section-menu-list" role="listbox" data-section-menu hidden>
+        <button class="section-option is-active" type="button" role="option" aria-selected="true" data-section-option="links">links</button>
+        <button class="section-option" type="button" role="option" aria-selected="false" data-section-option="notebook">notebook</button>
+        <button class="section-option" type="button" role="option" aria-selected="false" data-section-option="game">game</button>
+      </div>
+    </div>
+  </nav>
+  <main class="card">
+    <div class="avatar">
+      <img src="uzi.gif" alt="logo">
+    </div>
+    <h1>ソーヤー</h1>
+    <p class="tag">;personal / about me</p>
+    <p class="bio">my links, socials, projects, and whatever else.</p>
+
+    <section class="tab-panel is-active" data-tab-panel="links">
+      <div class="links">
+        <a href="https://www.tiktok.com/@sawyer_notbored" target="_blank" rel="noreferrer">TikTok</a>
+        <a href="https://music.apple.com/profile/addicted2sawyer" target="_blank" rel="noreferrer">AppleMusic</a>
+        <a href="https://www.youtube.com/@sawyer_bored" target="_blank" rel="noreferrer">Youtube</a>
+        <a href="https://github.com/boredummm" target="_blank" rel="noreferrer">GitHub</a>
+        <a href="photos.html">Photos</a>
+      </div>
+    </section>
+
+    <section class="tab-panel notebook-panel" data-tab-panel="notebook" hidden>
+      <textarea class="notebook" data-notebook maxlength="1800" placeholder="write anything..."></textarea>
+      <p class="notebook-status">saved locally</p>
+    </section>
+
+    <section class="tab-panel game-panel" data-tab-panel="game" hidden>
+      <div class="game-stats">
+        <span>score <strong data-flappy-score>0</strong></span>
+        <span>best <strong data-flappy-best>0</strong></span>
+      </div>
+      <div class="game-frame">
+        <canvas class="flappy-canvas" data-flappy-game width="360" height="430" aria-label="space flappy game"></canvas>
+        <button class="game-start" type="button" data-flappy-start>start</button>
+      </div>
+      <p class="game-hint">tap / click / space</p>
+    </section>
+  </main>
+  <aside class="now-playing" aria-live="polite">
+    <a class="now-cover-link" data-now-link href="https://www.last.fm" target="_blank" rel="noreferrer">
+      <span class="now-cover-fallback">fm</span>
+      <img class="now-cover" data-now-cover alt="">
+    </a>
+    <div class="now-info">
+      <p class="now-label"><span></span><span data-now-status>last.fm scrobble</span></p>
+      <a class="now-track" data-now-track href="https://www.last.fm" target="_blank" rel="noreferrer">connect Last.fm</a>
+      <p class="now-artist" data-now-artist>add your username + API key</p>
+    </div>
+  </aside>
+  <script src="script.js"></script>
+</body>
+</html>
