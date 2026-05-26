@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>photos</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="stars"></div>
+
+  <main class="card">
+    <h1>photos</h1>
+    <p class="tag">random pics / moments</p>
+
+    <section class="gallery">
+      <img src="photo1.JPG" alt="photo 1">
+      <img src="photo2.JPG" alt="photo 2">
+      <img src="photo3.JPG" alt="photo 3">
+    </section>
+
+    <a href="index.html">back</a>
+  </main>
+  <aside class="now-playing" aria-live="polite">
+    <a class="now-cover-link" data-now-link href="https://www.last.fm" target="_blank" rel="noreferrer">
+      <span class="now-cover-fallback">fm</span>
+      <img class="now-cover" data-now-cover alt="">
+    </a>
+    <div class="now-info">
+      <p class="now-label"><span></span><span data-now-status>last.fm scrobble</span></p>
+      <a class="now-track" data-now-track href="https://www.last.fm" target="_blank" rel="noreferrer">connect Last.fm</a>
+      <p class="now-artist" data-now-artist>add your username + API key</p>
+    </div>
+  </aside>
+  <script src="script.js"></script>
+</body>
+</html>
