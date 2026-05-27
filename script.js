@@ -12,6 +12,13 @@ const moonImage = document.querySelector("[data-moon-image]");
 const moonPhase = document.querySelector("[data-moon-phase]");
 const shaderCanvas = document.querySelector("[data-shader-canvas]");
 const particleCanvas = document.querySelector("[data-particle-canvas]");
+const galleryImages = document.querySelectorAll(".gallery img");
+const photoLightbox = document.querySelector("[data-photo-lightbox]");
+const lightboxImage = document.querySelector("[data-lightbox-image]");
+const lightboxCaption = document.querySelector("[data-lightbox-caption]");
+const lightboxClose = document.querySelector("[data-lightbox-close]");
+const lightboxPrev = document.querySelector("[data-lightbox-prev]");
+const lightboxNext = document.querySelector("[data-lightbox-next]");
 const sectionDropdown = document.querySelector("[data-section-dropdown]");
 const sectionToggle = document.querySelector("[data-section-toggle]");
 const sectionCurrent = document.querySelector("[data-section-current]");
@@ -132,6 +139,94 @@ function setupNotebook() {
 
 setupSections();
 setupNotebook();
+
+function setupPhotoLightbox() {
+  if (!galleryImages.length || !photoLightbox || !lightboxImage) {
+    return;
+  }
+
+  const photos = [...galleryImages].map((image, index) => ({
+    src: image.currentSrc || image.src,
+    alt: image.alt || `photo ${index + 1}`,
+  }));
+  let activeIndex = 0;
+  let closeTimer = 0;
+
+  function renderPhoto() {
+    const photo = photos[activeIndex];
+
+    lightboxImage.src = photo.src;
+    lightboxImage.alt = photo.alt;
+
+    if (lightboxCaption) {
+      lightboxCaption.textContent = photo.alt;
+    }
+  }
+
+  function openPhoto(index) {
+    window.clearTimeout(closeTimer);
+    activeIndex = index;
+    renderPhoto();
+    photoLightbox.hidden = false;
+    photoLightbox.setAttribute("aria-hidden", "false");
+    document.body.classList.add("lightbox-open");
+
+    window.requestAnimationFrame(() => {
+      photoLightbox.classList.add("is-open");
+      lightboxClose?.focus({ preventScroll: true });
+    });
+  }
+
+  function closePhoto() {
+    photoLightbox.classList.remove("is-open");
+    photoLightbox.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("lightbox-open");
+    closeTimer = window.setTimeout(() => {
+      photoLightbox.hidden = true;
+    }, 220);
+  }
+
+  function showRelativePhoto(direction) {
+    activeIndex = (activeIndex + direction + photos.length) % photos.length;
+    renderPhoto();
+  }
+
+  galleryImages.forEach((image, index) => {
+    image.tabIndex = 0;
+    image.addEventListener("click", () => openPhoto(index));
+    image.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openPhoto(index);
+      }
+    });
+  });
+
+  lightboxClose?.addEventListener("click", closePhoto);
+  lightboxPrev?.addEventListener("click", () => showRelativePhoto(-1));
+  lightboxNext?.addEventListener("click", () => showRelativePhoto(1));
+  photoLightbox.addEventListener("click", (event) => {
+    if (event.target === photoLightbox) {
+      closePhoto();
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (photoLightbox.hidden) {
+      return;
+    }
+
+    if (event.key === "Escape") {
+      closePhoto();
+    } else if (event.key === "ArrowLeft") {
+      showRelativePhoto(-1);
+    } else if (event.key === "ArrowRight") {
+      showRelativePhoto(1);
+    }
+  });
+}
+
+setupPhotoLightbox();
 
 let drawFlappyIntro = () => {};
 
@@ -1417,6 +1512,151 @@ function findAlbumCover(track) {
   return image?.["#text"] || "";
 }
 
+const coverGlowCache = new Map();
+let coverGlowRequestId = 0;
+
+function resetAlbumCoverGlow() {
+  nowPlaying?.classList.remove("has-cover-glow");
+  nowPlaying?.style.removeProperty("--cover-r");
+  nowPlaying?.style.removeProperty("--cover-g");
+  nowPlaying?.style.removeProperty("--cover-b");
+}
+
+function setAlbumCoverReflection(cover) {
+  if (!nowPlaying) {
+    return;
+  }
+
+  if (!cover) {
+    nowPlaying.style.removeProperty("--cover-image");
+    return;
+  }
+
+  nowPlaying.style.setProperty("--cover-image", `url("${cover.replace(/"/g, "%22")}")`);
+}
+
+function setAlbumCoverGlow({ red, green, blue }) {
+  if (!nowPlaying) {
+    return;
+  }
+
+  nowPlaying.style.setProperty("--cover-r", String(red));
+  nowPlaying.style.setProperty("--cover-g", String(green));
+  nowPlaying.style.setProperty("--cover-b", String(blue));
+  nowPlaying.classList.add("has-cover-glow");
+}
+
+function getAlbumCoverColor(image) {
+  const canvas = document.createElement("canvas");
+  const size = 16;
+  canvas.width = size;
+  canvas.height = size;
+
+  const context = canvas.getContext("2d", {
+    alpha: false,
+    willReadFrequently: true,
+  });
+
+  if (!context) {
+    return null;
+  }
+
+  context.drawImage(image, 0, 0, size, size);
+  const pixels = context.getImageData(0, 0, size, size).data;
+  let red = 0;
+  let green = 0;
+  let blue = 0;
+  let totalWeight = 0;
+
+  for (let index = 0; index < pixels.length; index += 4) {
+    const pixelRed = pixels[index];
+    const pixelGreen = pixels[index + 1];
+    const pixelBlue = pixels[index + 2];
+    const max = Math.max(pixelRed, pixelGreen, pixelBlue);
+    const min = Math.min(pixelRed, pixelGreen, pixelBlue);
+    const brightness = (max + min) / 2;
+    const saturation = max === 0 ? 0 : (max - min) / max;
+
+    if (brightness < 24 || brightness > 246) {
+      continue;
+    }
+
+    const weight = .4 + saturation * 1.65 + Math.min(brightness / 180, 1) * .35;
+    red += pixelRed * weight;
+    green += pixelGreen * weight;
+    blue += pixelBlue * weight;
+    totalWeight += weight;
+  }
+
+  if (!totalWeight) {
+    return null;
+  }
+
+  const color = {
+    red: Math.round(red / totalWeight),
+    green: Math.round(green / totalWeight),
+    blue: Math.round(blue / totalWeight),
+  };
+  const boost = Math.max(1, 92 / Math.max(color.red, color.green, color.blue));
+
+  return {
+    red: Math.min(255, Math.round(color.red * boost)),
+    green: Math.min(255, Math.round(color.green * boost)),
+    blue: Math.min(255, Math.round(color.blue * boost)),
+  };
+}
+
+function applyAlbumCoverGlow(cover) {
+  const requestId = ++coverGlowRequestId;
+
+  if (!cover || !nowPlaying) {
+    resetAlbumCoverGlow();
+    return;
+  }
+
+  if (coverGlowCache.has(cover)) {
+    const cachedColor = coverGlowCache.get(cover);
+
+    if (cachedColor) {
+      setAlbumCoverGlow(cachedColor);
+    } else {
+      resetAlbumCoverGlow();
+    }
+
+    return;
+  }
+
+  const image = new Image();
+  image.crossOrigin = "anonymous";
+  image.decoding = "async";
+  image.onload = () => {
+    if (requestId !== coverGlowRequestId) {
+      return;
+    }
+
+    try {
+      const color = getAlbumCoverColor(image);
+      coverGlowCache.set(cover, color);
+
+      if (color) {
+        setAlbumCoverGlow(color);
+      } else {
+        resetAlbumCoverGlow();
+      }
+    } catch {
+      coverGlowCache.set(cover, null);
+      resetAlbumCoverGlow();
+    }
+  };
+  image.onerror = () => {
+    if (requestId === coverGlowRequestId) {
+      coverGlowCache.set(cover, null);
+      resetAlbumCoverGlow();
+    }
+  };
+  image.src = cover;
+}
+
 function updateNowPlaying(track) {
   const isPlaying = track?.["@attr"]?.nowplaying === "true";
   const artist = track?.artist?.["#text"] || "unknown artist";
@@ -1427,6 +1667,7 @@ function updateNowPlaying(track) {
 
   nowPlaying?.classList.toggle("is-playing", isPlaying);
   nowPlaying?.classList.toggle("has-cover", Boolean(cover));
+  setAlbumCoverReflection(cover);
   setNowPlayingMessage(isPlaying ? "currently playing" : "last scrobbled", title, `${artist} / ${album}`, url);
 
   if (nowCover) {
@@ -1438,11 +1679,15 @@ function updateNowPlaying(track) {
       nowCover.removeAttribute("src");
     }
   }
+
+  applyAlbumCoverGlow(cover);
 }
 
 async function loadNowPlaying() {
   if (!LASTFM_USERNAME || !LASTFM_API_KEY) {
     setNowPlayingMessage("last.fm scrobble", "connect Last.fm", "add your username + API key");
+    resetAlbumCoverGlow();
+    setAlbumCoverReflection("");
     return;
   }
 
@@ -1466,6 +1711,8 @@ async function loadNowPlaying() {
     if (!track) {
       setNowPlayingMessage("last.fm scrobble", "nothing found", "no recent tracks yet");
       nowPlaying?.classList.remove("is-playing", "has-cover");
+      resetAlbumCoverGlow();
+      setAlbumCoverReflection("");
       return;
     }
 
@@ -1473,6 +1720,8 @@ async function loadNowPlaying() {
   } catch {
     setNowPlayingMessage("last.fm scrobble", "could not load", "check Last.fm settings");
     nowPlaying?.classList.remove("is-playing", "has-cover");
+    resetAlbumCoverGlow();
+    setAlbumCoverReflection("");
   }
 }
 

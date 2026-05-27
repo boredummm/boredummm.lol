@@ -5,23 +5,26 @@
   --lavender-hex: #bea5ff;
   --purple-hex: #8e5cff;
   --star-cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath fill='%23d8caff' stroke='%238e5cff' stroke-width='1.7' d='M16 2l3.1 9.2 9.7 1.1-7.4 6.4 2.1 9.6L16 23.2 8.5 28.3l2.1-9.6-7.4-6.4 9.7-1.1L16 2z'/%3E%3Ccircle cx='16' cy='16' r='2.4' fill='%236b3fd6'/%3E%3C/svg%3E") 16 16, auto;
-  --edge-glow: 0 0 0 1px rgba(255,255,255,.08), 0 10px 28px rgba(0,0,0,.26), 0 0 18px rgba(var(--lavender),.12), inset 0 1px 0 rgba(255,255,255,.24);
+  --edge-glow: 0 0 0 1px rgba(255,255,255,.18), 0 12px 30px rgba(0,0,0,.28), 0 0 18px rgba(var(--lavender),.13), inset 0 1px 0 rgba(255,255,255,.34), inset 0 -1px 0 rgba(var(--purple),.18);
   --glass-bg:
-    radial-gradient(circle at 18% 0%, rgba(255,255,255,.13), transparent 32%),
-    radial-gradient(circle at 88% 110%, rgba(var(--purple),.09), transparent 38%),
-    linear-gradient(152deg, rgba(255,255,255,.075), rgba(205,184,255,.026) 34%, rgba(10,7,18,.18) 100%);
+    radial-gradient(circle at 13% 0%, rgba(255,255,255,.2), transparent 28%),
+    radial-gradient(ellipse at 52% 42%, rgba(255,255,255,.028), transparent 46%),
+    radial-gradient(circle at 92% 108%, rgba(var(--purple),.11), transparent 40%),
+    linear-gradient(152deg, rgba(255,255,255,.078), rgba(205,184,255,.018) 36%, rgba(8,5,16,.16) 100%);
   --glass-panel-bg:
-    radial-gradient(circle at 18% -8%, rgba(255,255,255,.14), transparent 34%),
-    radial-gradient(circle at 92% 116%, rgba(var(--purple),.1), transparent 42%),
-    linear-gradient(152deg, rgba(255,255,255,.068), rgba(205,184,255,.024) 36%, rgba(7,5,14,.2) 100%);
+    radial-gradient(circle at 14% -8%, rgba(255,255,255,.22), transparent 30%),
+    radial-gradient(ellipse at 50% 44%, rgba(255,255,255,.03), transparent 48%),
+    radial-gradient(circle at 94% 116%, rgba(var(--purple),.12), transparent 44%),
+    linear-gradient(152deg, rgba(255,255,255,.07), rgba(205,184,255,.017) 38%, rgba(7,5,14,.18) 100%);
   --glass-control-bg:
-    linear-gradient(150deg, rgba(255,255,255,.07), rgba(205,184,255,.022) 46%, rgba(13,9,24,.14)),
-    rgba(255,255,255,.018);
+    radial-gradient(circle at 16% 0%, rgba(255,255,255,.13), transparent 32%),
+    linear-gradient(150deg, rgba(255,255,255,.064), rgba(205,184,255,.016) 48%, rgba(13,9,24,.13)),
+    rgba(255,255,255,.012);
   --glass-hover-bg:
-    radial-gradient(circle at 24% 0%, rgba(255,255,255,.18), transparent 30%),
-    linear-gradient(150deg, rgba(255,255,255,.105), rgba(205,184,255,.045) 46%, rgba(18,12,34,.24));
-  --glass-border: rgba(255,255,255,.2);
-  --glass-shadow: 0 14px 38px rgba(0,0,0,.25), 0 0 18px rgba(var(--lavender),.055), inset 0 1px 0 rgba(255,255,255,.34), inset 0 -10px 22px rgba(0,0,0,.11);
+    radial-gradient(circle at 18% 0%, rgba(255,255,255,.24), transparent 30%),
+    linear-gradient(150deg, rgba(255,255,255,.12), rgba(205,184,255,.04) 46%, rgba(18,12,34,.22));
+  --glass-border: rgba(255,255,255,.24);
+  --glass-shadow: 0 26px 68px rgba(0,0,0,.38), 0 0 18px rgba(var(--lavender),.06), inset 0 1px 0 rgba(255,255,255,.38), inset 0 -12px 24px rgba(0,0,0,.13);
   --glass-blur: 9px;
 }
 
@@ -147,14 +150,15 @@ button {
   border-radius: inherit;
   pointer-events: none;
   background:
-    linear-gradient(180deg, rgba(255,255,255,.22), transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,.12), transparent 22%, transparent 78%, rgba(255,255,255,.07)),
-    radial-gradient(circle at var(--glass-x) var(--glass-y), rgba(255,255,255,.34), rgba(255,255,255,.09) 18%, transparent 40%),
-    radial-gradient(circle at calc(100% - var(--glass-x)) calc(100% - var(--glass-y)), rgba(var(--lavender),.085), transparent 34%),
-    linear-gradient(135deg, rgba(255,255,255,.1), transparent 28%, rgba(255,255,255,.035) 58%, rgba(var(--purple),.055));
+    linear-gradient(180deg, rgba(255,255,255,.38), rgba(255,255,255,.07) 1px, transparent 18%),
+    linear-gradient(90deg, rgba(255,255,255,.18), transparent 18%, transparent 82%, rgba(255,255,255,.1)),
+    radial-gradient(circle at 18% 10%, rgba(255,255,255,.24), rgba(255,255,255,.07) 20%, transparent 38%),
+    radial-gradient(circle at var(--glass-x) var(--glass-y), rgba(255,255,255,.48), rgba(255,255,255,.12) 18%, transparent 42%),
+    radial-gradient(circle at calc(100% - var(--glass-x)) calc(100% - var(--glass-y)), rgba(var(--lavender),.1), transparent 36%),
+    linear-gradient(135deg, rgba(255,255,255,.12), transparent 28%, rgba(255,255,255,.04) 58%, rgba(var(--purple),.06));
   filter: saturate(1.05);
   mix-blend-mode: screen;
-  opacity: .26;
+  opacity: .34;
   transform: translate3d(var(--glass-pull-x, 0px), var(--glass-pull-y, 0px), 0) scale(1.03);
   transition: opacity .28s ease, transform .28s ease;
 }
@@ -184,11 +188,11 @@ button {
   border-radius: inherit;
   pointer-events: none;
   background:
-    linear-gradient(115deg, transparent 38%, rgba(255,255,255,.2) 45%, rgba(var(--lavender),.08) 49%, transparent 58%),
-    linear-gradient(16deg, transparent 32%, rgba(255,255,255,.055) 50%, transparent 68%);
-  filter: blur(.8px);
-  opacity: .2;
-  transform: translate3d(-18%, -6%, 0) rotate(11deg);
+    linear-gradient(116deg, transparent 35%, rgba(255,255,255,.06) 40%, rgba(255,255,255,.42) 46%, rgba(var(--lavender),.14) 49%, transparent 56%),
+    linear-gradient(18deg, transparent 33%, rgba(255,255,255,.075) 49%, transparent 67%);
+  filter: blur(.35px);
+  opacity: .28;
+  transform: translate3d(-20%, -7%, 0) rotate(10deg);
   transition: opacity .32s ease, transform .45s cubic-bezier(.22, 1, .36, 1);
 }
 
@@ -224,7 +228,7 @@ button {
 .now-playing:hover::before,
 .now-cover-link:hover::before,
 .is-glass-pressing::before {
-  opacity: .38;
+  opacity: .48;
 }
 
 .card:hover::after,
@@ -246,8 +250,8 @@ button {
 .card > a:hover::after,
 .now-playing:hover::after,
 .is-glass-pressing::after {
-  opacity: .28;
-  transform: translate3d(12%, 4%, 0) rotate(11deg);
+  opacity: .42;
+  transform: translate3d(16%, 5%, 0) rotate(10deg);
 }
 
 .loader {
@@ -561,7 +565,7 @@ body.started .start-progress span {
   width: min(92vw, 440px);
   padding: 34px;
   text-align: center;
-  border: 1px solid rgba(255,255,255,.2);
+  border: 1px solid rgba(255,255,255,.24);
   border-radius: 28px;
   background: var(--glass-panel-bg);
   box-shadow: var(--glass-shadow);
@@ -1010,12 +1014,14 @@ body.thoughts-open .thought-wall {
 }
 
 body.started .card:hover {
-  border-color: rgba(var(--lavender),.5);
+  border-color: rgba(255,255,255,.32);
   box-shadow:
-    0 18px 46px rgba(0,0,0,.32),
-    0 0 20px rgba(var(--lavender),.13),
-    inset 0 1px 0 rgba(255,255,255,.32),
-    inset 0 -14px 30px rgba(0,0,0,.14);
+    0 30px 78px rgba(0,0,0,.42),
+    0 0 22px rgba(var(--lavender),.14),
+    inset 0 1px 0 rgba(255,255,255,.42),
+    inset 1px 0 0 rgba(255,255,255,.12),
+    inset -1px 0 0 rgba(var(--purple),.12),
+    inset 0 -16px 34px rgba(0,0,0,.16);
   transform: translateY(-2px) scale(1.01);
 }
 
@@ -1316,16 +1322,160 @@ h1 {
   border-radius: 18px;
   border: 1px solid rgba(255,255,255,0.15);
   object-fit: cover;
+  cursor: var(--star-cursor);
   transition: transform .22s ease, border-color .22s ease, box-shadow .22s ease;
 }
 
+.gallery img:focus-visible,
 .gallery img:hover {
   transform: translateY(-3px) scale(1.015);
   border-color: rgba(var(--lavender),.55);
   box-shadow: 0 14px 30px rgba(0,0,0,.24), 0 0 16px rgba(var(--lavender),.14);
+  outline: none;
+}
+
+body.lightbox-open {
+  overflow: hidden;
+}
+
+.photo-lightbox[hidden] {
+  display: none;
+}
+
+.photo-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: minmax(48px, 1fr) minmax(0, min(86vw, 980px)) minmax(48px, 1fr);
+  grid-template-rows: minmax(22px, 1fr) auto minmax(22px, 1fr);
+  align-items: center;
+  justify-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 48% 42%, rgba(var(--lavender),.12), transparent 36%),
+    rgba(3,2,8,.64);
+  backdrop-filter: blur(8px) saturate(132%);
+  -webkit-backdrop-filter: blur(8px) saturate(132%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .22s ease;
+}
+
+.photo-lightbox.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.lightbox-frame {
+  grid-column: 2;
+  grid-row: 2;
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  max-height: 86vh;
+  margin: 0;
+  padding: 10px;
+  border: 1px solid rgba(255,255,255,.22);
+  border-radius: 22px;
+  background: var(--glass-panel-bg);
+  box-shadow: 0 18px 44px rgba(0,0,0,.36), 0 0 18px rgba(var(--lavender),.09), inset 0 1px 0 rgba(255,255,255,.28);
+  backdrop-filter: blur(8px) saturate(148%);
+  -webkit-backdrop-filter: blur(8px) saturate(148%);
+  transform: translateY(8px) scale(.985);
+  transition: transform .24s cubic-bezier(.22, 1, .36, 1);
+}
+
+.photo-lightbox.is-open .lightbox-frame {
+  transform: translateY(0) scale(1);
+}
+
+.lightbox-image {
+  display: block;
+  width: 100%;
+  max-height: min(74vh, 760px);
+  object-fit: contain;
+  border-radius: 16px;
+  background: #040309;
+}
+
+.lightbox-caption {
+  min-height: 14px;
+  margin: 0;
+  color: rgba(255,255,255,.54);
+  font-size: 11px;
+  text-align: center;
+  text-transform: lowercase;
+}
+
+.lightbox-close,
+.lightbox-nav {
+  color: white;
+  border: 1px solid rgba(255,255,255,.22);
+  background: var(--glass-bg);
+  box-shadow: 0 10px 24px rgba(0,0,0,.26), inset 0 1px 0 rgba(255,255,255,.24);
+  backdrop-filter: blur(8px) saturate(148%);
+  -webkit-backdrop-filter: blur(8px) saturate(148%);
+  transition: transform .18s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease;
+}
+
+.lightbox-close:hover,
+.lightbox-close:focus-visible,
+.lightbox-nav:hover,
+.lightbox-nav:focus-visible {
+  border-color: rgba(var(--lavender),.52);
+  background: var(--glass-hover-bg);
+  box-shadow: var(--edge-glow);
+  outline: none;
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font: inherit;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.lightbox-nav {
+  grid-row: 2;
+  width: 42px;
+  height: 58px;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 34px;
+  line-height: 1;
+}
+
+.lightbox-prev {
+  grid-column: 1;
+  justify-self: end;
+}
+
+.lightbox-next {
+  grid-column: 3;
+  justify-self: start;
+}
+
+.lightbox-close:hover,
+.lightbox-close:focus-visible {
+  transform: translateY(-1px);
+}
+
+.lightbox-nav:hover,
+.lightbox-nav:focus-visible {
+  transform: translateY(-1px) scale(1.03);
 }
 
 .now-playing {
+  --cover-r: 190;
+  --cover-g: 165;
+  --cover-b: 255;
+  --cover-image: none;
   position: fixed;
   left: 50%;
   bottom: 18px;
@@ -1348,6 +1498,38 @@ h1 {
   transform: translate(-50%, 18px) scale(.98);
   pointer-events: none;
   transition: border-color .22s ease, box-shadow .22s ease;
+}
+
+.now-playing.has-cover::before {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.2), transparent 1px),
+    radial-gradient(circle at 16% 38%, rgba(var(--lavender), .12), transparent 34%),
+    var(--cover-image);
+  background-position: center;
+  background-size: auto, auto, cover;
+  opacity: .28;
+}
+
+.now-playing.has-cover-glow {
+  border-color: rgba(var(--cover-r), var(--cover-g), var(--cover-b), .3);
+  background:
+    radial-gradient(circle at 12% 34%, rgba(var(--cover-r), var(--cover-g), var(--cover-b), .16), transparent 34%),
+    var(--glass-panel-bg);
+  box-shadow:
+    0 18px 42px rgba(0,0,0,.34),
+    0 0 18px rgba(var(--cover-r), var(--cover-g), var(--cover-b), .13),
+    inset 0 1px 0 rgba(255,255,255,.25);
+}
+
+.now-playing.has-cover-glow::before {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.22), transparent 1px),
+    radial-gradient(circle at 16% 38%, rgba(var(--cover-r), var(--cover-g), var(--cover-b), .18), transparent 34%),
+    radial-gradient(circle at var(--glass-x) var(--glass-y), rgba(255,255,255,.24), rgba(255,255,255,.08) 18%, transparent 40%),
+    var(--cover-image);
+  background-position: center;
+  background-size: auto, auto, auto, cover;
+  opacity: .34;
 }
 
 body.started .now-playing {
@@ -1392,12 +1574,17 @@ body.started .now-playing:hover {
   transform: scale(1.04);
 }
 
+.now-playing.has-cover-glow .now-cover-link {
+  border-color: rgba(var(--cover-r), var(--cover-g), var(--cover-b), .34);
+  box-shadow: 0 10px 22px rgba(0,0,0,.22), 0 0 14px rgba(var(--cover-r), var(--cover-g), var(--cover-b), .18);
+}
+
 .now-cover-link::after {
   content: "";
   position: absolute;
   inset: -18px;
   border-radius: inherit;
-  background: conic-gradient(from 0deg, transparent, rgba(var(--lavender),.5), transparent, rgba(var(--purple),.48), transparent);
+  background: conic-gradient(from 0deg, transparent, rgba(var(--cover-r), var(--cover-g), var(--cover-b), .48), transparent, rgba(var(--purple),.36), transparent);
   opacity: 0;
   animation: album-ring 4.5s linear infinite;
 }
@@ -1457,8 +1644,8 @@ body.started .now-playing:hover {
 }
 
 .now-playing.is-playing .now-label span:first-child {
-  background: var(--lavender-hex);
-  box-shadow: 0 0 14px rgba(var(--lavender),.92);
+  background: rgb(var(--cover-r), var(--cover-g), var(--cover-b));
+  box-shadow: 0 0 14px rgba(var(--cover-r), var(--cover-g), var(--cover-b), .72);
   animation: now-dot 1.2s ease-in-out infinite;
 }
 
@@ -1480,7 +1667,7 @@ body.started .now-playing:hover {
 
 .now-track:hover {
   text-decoration: underline;
-  text-shadow: 0 0 14px rgba(var(--lavender),.62);
+  text-shadow: 0 0 12px rgba(var(--cover-r), var(--cover-g), var(--cover-b), .42);
 }
 
 .now-artist {
@@ -1675,6 +1862,49 @@ body.started .now-playing:hover {
     width: 144px;
     height: 128px;
   }
+
+  .photo-lightbox {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: minmax(18px, 1fr) auto auto minmax(18px, 1fr);
+    gap: 12px;
+    padding: 18px 14px;
+  }
+
+  .lightbox-frame {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    max-height: 78vh;
+    border-radius: 18px;
+  }
+
+  .lightbox-image {
+    max-height: 66vh;
+    border-radius: 13px;
+  }
+
+  .lightbox-nav {
+    grid-row: 3;
+    width: 46px;
+    height: 42px;
+    font-size: 30px;
+  }
+
+  .lightbox-prev {
+    grid-column: 1;
+    justify-self: end;
+  }
+
+  .lightbox-next {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .lightbox-close {
+    top: 14px;
+    right: 14px;
+    width: 38px;
+    height: 38px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1693,6 +1923,13 @@ body.started .now-playing:hover {
     animation-duration: .01ms;
     animation-iteration-count: 1;
     animation-delay: 0s;
+  }
+
+  .photo-lightbox,
+  .lightbox-frame,
+  .lightbox-close,
+  .lightbox-nav {
+    transition-duration: .01ms;
   }
 
   body.started .loader {

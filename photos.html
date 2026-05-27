@@ -22,10 +22,19 @@
 
     <a href="index.html">back</a>
   </main>
+  <div class="photo-lightbox" data-photo-lightbox hidden aria-hidden="true" role="dialog" aria-modal="true" aria-label="photo viewer">
+    <button class="lightbox-close" type="button" data-lightbox-close aria-label="close photo">×</button>
+    <button class="lightbox-nav lightbox-prev" type="button" data-lightbox-prev aria-label="previous photo">‹</button>
+    <figure class="lightbox-frame">
+      <img class="lightbox-image" data-lightbox-image alt="">
+      <figcaption class="lightbox-caption" data-lightbox-caption></figcaption>
+    </figure>
+    <button class="lightbox-nav lightbox-next" type="button" data-lightbox-next aria-label="next photo">›</button>
+  </div>
   <aside class="now-playing" aria-live="polite">
     <a class="now-cover-link" data-now-link href="https://www.last.fm" target="_blank" rel="noreferrer">
       <span class="now-cover-fallback">fm</span>
-      <img class="now-cover" data-now-cover alt="">
+      <img class="now-cover" data-now-cover alt="" decoding="async">
     </a>
     <div class="now-info">
       <p class="now-label"><span></span><span data-now-status>last.fm scrobble</span></p>
