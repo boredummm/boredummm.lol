@@ -760,7 +760,8 @@ function setupBackgroundShader() {
       gl_FragColor = vec4(color, glow * 0.42 + shoot * 0.24);
     }
   `;
-  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+  let reducedMotion = reducedMotionQuery.matches;
   const frameInterval = 1000 / 30;
   let animationId = 0;
   let lastFrame = 0;
@@ -857,6 +858,18 @@ function setupBackgroundShader() {
     }
   });
 
+  function handleReducedMotionChange(event) {
+    reducedMotion = event.matches;
+    lastFrame = 0;
+    startShaderLoop();
+  }
+
+  if (typeof reducedMotionQuery.addEventListener === "function") {
+    reducedMotionQuery.addEventListener("change", handleReducedMotionChange);
+  } else {
+    reducedMotionQuery.addListener(handleReducedMotionChange);
+  }
+
   resizeShader();
   startShaderLoop();
 }
@@ -880,10 +893,12 @@ function setupParticleField() {
     return;
   }
 
-  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const particleCount = window.innerWidth < 720 ? 96 : 138;
+  const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const particleCaps = { mobile: 200, desktop: 700 };
+  const particleTargets = { mobile: 180, desktop: 420 };
+  const maxParticleCount = Math.min(particleTargets.desktop, particleCaps.desktop);
   const floatsPerParticle = 6;
-  const particleData = new Float32Array(particleCount * floatsPerParticle);
+  const particleData = new Float32Array(maxParticleCount * floatsPerParticle);
   const particles = [];
   const pointer = { x: .5, y: .5, active: 0 };
   const frameInterval = 1000 / 30;
@@ -891,13 +906,15 @@ function setupParticleField() {
   let lastFrame = 0;
   let startTime = performance.now();
   let pointScale = 1;
+  let activeParticleCount = 0;
+  let reducedMotion = reducedMotionQuery.matches;
 
   function seededRandom(index, salt) {
     const value = Math.sin(index * 127.1 + salt * 311.7) * 43758.5453123;
     return value - Math.floor(value);
   }
 
-  for (let index = 0; index < particleCount; index += 1) {
+  for (let index = 0; index < maxParticleCount; index += 1) {
     const x = seededRandom(index, 1) * 2.18 - 1.09;
     const y = seededRandom(index, 2) * 2.16 - 1.08;
     const depth = Math.pow(seededRandom(index, 3), .72);
@@ -910,16 +927,25 @@ function setupParticleField() {
     particleData.set([x, y, depth, size, phase, speed], offset);
   }
 
-  function createConstellationLines() {
+  function getParticleBudget() {
+    const isMobile = window.innerWidth < 720;
+    const target = isMobile ? particleTargets.mobile : particleTargets.desktop;
+    const cap = isMobile ? particleCaps.mobile : particleCaps.desktop;
+    return Math.min(target, cap, maxParticleCount);
+  }
+
+  function createConstellationLines(limit) {
     const aspect = window.innerWidth / Math.max(window.innerHeight, 1);
-    const anchorCount = Math.min(window.innerWidth < 720 ? 24 : 34, particleCount);
+    const isMobileBudget = limit <= particleCaps.mobile;
+    const anchorCount = Math.min(isMobileBudget ? 30 : 64, limit);
     const anchors = particles
+      .slice(0, limit)
       .map((particle, index) => ({ ...particle, index }))
       .sort((a, b) => b.depth - a.depth)
       .slice(0, anchorCount);
     const pairs = [];
     const used = new Set();
-    const maxPairs = window.innerWidth < 720 ? 30 : 48;
+    const maxPairs = isMobileBudget ? 36 : 96;
 
     anchors.forEach((anchor, anchorIndex) => {
       const closest = anchors
@@ -951,7 +977,7 @@ function setupParticleField() {
     return new Uint16Array(pairs);
   }
 
-  const lineIndices = createConstellationLines();
+  let lineIndices = new Uint16Array();
   const vertexSource = `
     precision mediump float;
     attribute vec2 a_position;
@@ -984,8 +1010,8 @@ function setupParticleField() {
       vec2 direction = normalize(toPointer + vec2(0.0001, -0.0001));
 
       position += drift;
-      position += vec2(direction.x / u_aspect, direction.y) * reaction * (0.052 + a_depth * 0.045);
-      position += pointerClip * u_pointer.z * (0.01 + a_depth * 0.018);
+      position += vec2(direction.x / u_aspect, direction.y) * reaction * (0.032 + a_depth * 0.028);
+      position += pointerClip * u_pointer.z * (0.006 + a_depth * 0.011);
 
       v_depth = a_depth;
       v_phase = a_phase;
@@ -1017,7 +1043,7 @@ function setupParticleField() {
       vec3 shine = vec3(0.82, 0.74, 1.0);
       vec3 color = mix(lavender, frost, 0.42 + v_depth * 0.42);
       color += shine * (glint * 0.42 + v_reaction * 0.24);
-      alpha *= 1.0 + v_reaction * 0.85;
+      alpha *= 1.0 + v_reaction * 0.55;
 
       if (alpha < 0.01) {
         discard;
@@ -1038,7 +1064,7 @@ function setupParticleField() {
       float pulse = 0.52 + 0.48 * sin(u_time * 0.48 + v_phase);
       float alpha = (0.032 + v_depth * 0.072) * pulse * v_twinkle;
       vec3 color = mix(vec3(0.48, 0.34, 0.92), vec3(0.9, 0.84, 1.0), v_depth);
-      gl_FragColor = vec4(color + v_reaction * 0.16, alpha * (1.0 + v_reaction * 1.5));
+      gl_FragColor = vec4(color + v_reaction * 0.12, alpha * (1.0 + v_reaction * 0.9));
     }
   `;
 
@@ -1099,12 +1125,23 @@ function setupParticleField() {
 
   gl.bindBuffer(gl.ARRAY_BUFFER, particleBuffer);
   gl.bufferData(gl.ARRAY_BUFFER, particleData, gl.STATIC_DRAW);
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, lineBuffer);
-  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, lineIndices, gl.STATIC_DRAW);
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
   gl.disable(gl.DEPTH_TEST);
   gl.clearColor(0, 0, 0, 0);
+
+  function updateParticleBudget() {
+    const nextParticleCount = getParticleBudget();
+
+    if (nextParticleCount === activeParticleCount) {
+      return;
+    }
+
+    activeParticleCount = nextParticleCount;
+    lineIndices = createConstellationLines(activeParticleCount);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, lineBuffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, lineIndices, gl.STATIC_DRAW);
+  }
 
   function enableAttribute(location, size, offset) {
     if (location < 0) {
@@ -1149,6 +1186,7 @@ function setupParticleField() {
     const width = Math.max(1, Math.min(1180, Math.floor(window.innerWidth * pixelRatio * scale)));
     const height = Math.max(1, Math.min(760, Math.floor(window.innerHeight * pixelRatio * scale)));
 
+    updateParticleBudget();
     pointScale = Math.max(1.2, Math.min(2.4, (width / Math.max(window.innerWidth, 1)) * 2.2));
 
     if (particleCanvas.width !== width || particleCanvas.height !== height) {
@@ -1186,7 +1224,7 @@ function setupParticleField() {
 
     useState(pointState);
     setUniforms(pointState, time);
-    gl.drawArrays(gl.POINTS, 0, particleCount);
+    gl.drawArrays(gl.POINTS, 0, activeParticleCount);
 
     if (!reducedMotion) {
       startParticleLoop();
@@ -1213,6 +1251,18 @@ function setupParticleField() {
       startParticleLoop();
     }
   });
+
+  function handleReducedMotionChange(event) {
+    reducedMotion = event.matches;
+    lastFrame = 0;
+    startParticleLoop();
+  }
+
+  if (typeof reducedMotionQuery.addEventListener === "function") {
+    reducedMotionQuery.addEventListener("change", handleReducedMotionChange);
+  } else {
+    reducedMotionQuery.addListener(handleReducedMotionChange);
+  }
 
   resizeParticles();
   startParticleLoop();
