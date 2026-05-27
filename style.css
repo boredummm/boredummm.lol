@@ -42,10 +42,10 @@ body {
   display: grid;
   place-items: center;
   background:
-    radial-gradient(circle at 22% 16%, rgba(205, 184, 255, .24), transparent 28%),
-    radial-gradient(circle at 78% 74%, rgba(126, 83, 220, .2), transparent 34%),
-    radial-gradient(circle at 50% 105%, rgba(70, 34, 130, .24), transparent 38%),
-    linear-gradient(180deg, #120a24 0%, #06030c 48%, #13071f 100%);
+    radial-gradient(ellipse at 18% 16%, rgba(190,165,255,.12), transparent 30%),
+    radial-gradient(ellipse at 82% 76%, rgba(92,45,172,.16), transparent 42%),
+    linear-gradient(115deg, transparent 12%, rgba(255,255,255,.018) 24%, transparent 39%, rgba(190,165,255,.028) 58%, transparent 72%),
+    linear-gradient(180deg, #08050f 0%, #020104 48%, #10061d 100%);
   color: white;
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   overflow-x: hidden;
@@ -59,11 +59,26 @@ body::before {
   z-index: 0;
   pointer-events: none;
   background:
-    radial-gradient(circle at 24% 24%, rgba(205,184,255,.14), transparent 24%),
-    radial-gradient(circle at 76% 68%, rgba(142,92,255,.12), transparent 26%);
-  filter: blur(6px);
-  opacity: .78;
-  animation: ambient-parallax 28s ease-in-out infinite alternate;
+    radial-gradient(ellipse at 26% 18%, rgba(224,214,255,.09), transparent 26%),
+    radial-gradient(ellipse at 74% 70%, rgba(142,92,255,.105), transparent 32%),
+    linear-gradient(126deg, transparent 24%, rgba(255,255,255,.035) 44%, transparent 62%);
+  filter: blur(5px);
+  opacity: .64;
+  animation: ambient-parallax 34s ease-in-out infinite alternate;
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(116deg, transparent 8%, rgba(255,255,255,.035) 18%, transparent 31%),
+    linear-gradient(292deg, transparent 60%, rgba(var(--lavender),.04) 73%, transparent 85%),
+    radial-gradient(ellipse at 50% 38%, rgba(255,255,255,.022), transparent 54%);
+  opacity: .58;
+  mix-blend-mode: screen;
 }
 
 .shader-canvas {
@@ -73,7 +88,7 @@ body::before {
   width: 100%;
   height: 100%;
   pointer-events: none;
-  opacity: .48;
+  opacity: .36;
   mix-blend-mode: screen;
 }
 
@@ -84,7 +99,7 @@ body::before {
   width: 100%;
   height: 100%;
   pointer-events: none;
-  opacity: .92;
+  opacity: .58;
   mix-blend-mode: screen;
 }
 
@@ -262,9 +277,11 @@ button {
   place-items: center;
   overflow: hidden;
   background:
-    radial-gradient(circle at 50% 48%, rgba(255,255,255,.08), transparent 30%),
-    linear-gradient(135deg, rgba(var(--lavender),.09), rgba(var(--purple),.08) 45%, transparent 70%),
-    #030303;
+    radial-gradient(circle at 50% 44%, rgba(255,255,255,.105), transparent 28%),
+    radial-gradient(ellipse at 26% 18%, rgba(214,200,255,.16), transparent 34%),
+    radial-gradient(ellipse at 78% 78%, rgba(var(--purple),.16), transparent 40%),
+    linear-gradient(122deg, transparent 16%, rgba(255,255,255,.06) 30%, transparent 46%),
+    #04020a;
 }
 
 body.started .loader {
@@ -276,14 +293,13 @@ body.started .loader {
   position: absolute;
   inset: -120px;
   background-image:
-    radial-gradient(circle, rgba(255,255,255,.95) 0 1px, transparent 1.5px),
-    radial-gradient(circle, rgba(var(--lavender),.82) 0 1px, transparent 1.5px),
-    radial-gradient(circle, rgba(var(--purple),.68) 0 1px, transparent 1.5px),
-    radial-gradient(circle, rgba(255,255,255,.45) 0 1px, transparent 1.5px);
-  background-position: 0 0, 80px 120px, 170px 40px, 220px 180px;
-  background-size: 150px 150px, 230px 230px, 330px 330px, 420px 420px;
-  opacity: .82;
-  animation: loader-drift 26s linear infinite;
+    radial-gradient(circle, rgba(255,255,255,.28) 0 .7px, transparent 1.4px),
+    radial-gradient(circle, rgba(var(--lavender),.22) 0 .8px, transparent 1.6px),
+    linear-gradient(118deg, transparent 36%, rgba(255,255,255,.055) 47%, transparent 58%);
+  background-position: 0 0, 110px 70px, 0 0;
+  background-size: 190px 190px, 310px 310px, 100% 100%;
+  opacity: .46;
+  animation: loader-drift 34s linear infinite, sparkle-twinkle 7.4s ease-in-out infinite alternate;
 }
 
 .loader-stars::before,
@@ -307,35 +323,6 @@ body.started .loader {
   animation-direction: normal, alternate;
 }
 
-.shooting-star {
-  position: absolute;
-  width: 140px;
-  height: 2px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,.95), rgba(var(--lavender),.86));
-  filter: drop-shadow(0 0 8px rgba(var(--lavender),.8));
-  opacity: 0;
-  transform: rotate(-22deg);
-  animation: shooting-star 7.8s ease-in-out infinite;
-}
-
-.shooting-star-one {
-  top: 16%;
-  left: -20%;
-}
-
-.shooting-star-two {
-  top: 44%;
-  left: -30%;
-  animation-delay: 1.6s;
-}
-
-.shooting-star-three {
-  top: 70%;
-  left: -25%;
-  animation-delay: 3.1s;
-}
-
 .loader-core {
   position: relative;
   display: grid;
@@ -349,64 +336,6 @@ body.started .loader {
     loader-core-float 7s ease-in-out .9s infinite;
 }
 
-.constellation {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 190px;
-  height: 150px;
-  border-radius: 50%;
-  opacity: .62;
-  filter: drop-shadow(0 0 14px rgba(var(--lavender),.5));
-  transform: translate(-50%, -68%);
-  animation: constellation-float 3.8s ease-in-out infinite;
-}
-
-.constellation::before,
-.constellation::after {
-  content: "";
-  position: absolute;
-  inset: 20px 30px;
-  border: 1px solid rgba(255,255,255,.16);
-  border-radius: 44% 56% 48% 52%;
-  transform: rotate(-12deg);
-}
-
-.constellation::after {
-  inset: 44px 54px;
-  border-color: rgba(var(--purple),.28);
-  transform: rotate(18deg);
-}
-
-.constellation span {
-  position: absolute;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: white;
-  box-shadow:
-    0 0 12px rgba(255,255,255,.85),
-    0 0 26px rgba(var(--lavender),.6);
-  animation: star-pop 1.8s ease-in-out infinite alternate;
-}
-
-.constellation span:nth-child(1) { left: 16px; top: 74px; }
-.constellation span:nth-child(2) { left: 48px; top: 38px; animation-delay: .15s; }
-.constellation span:nth-child(3) { left: 86px; top: 58px; animation-delay: .3s; }
-.constellation span:nth-child(4) { left: 122px; top: 28px; animation-delay: .45s; }
-.constellation span:nth-child(5) { left: 154px; top: 78px; animation-delay: .6s; }
-.constellation span:nth-child(6) { left: 98px; top: 112px; animation-delay: .75s; }
-.constellation span:nth-child(7) { left: 36px; top: 112px; animation-delay: .9s; }
-
-.loader-title {
-  position: relative;
-  z-index: 1;
-  margin: 0;
-  color: rgba(255,255,255,.92);
-  font-size: 17px;
-  letter-spacing: 0;
-  text-shadow: 0 0 20px rgba(var(--lavender),.6);
-}
 
 .start-button {
   position: relative;
@@ -492,25 +421,6 @@ body.started .start-progress span {
   to { opacity: .75; transform: scale(1.08); }
 }
 
-@keyframes shooting-star {
-  0%, 26% {
-    opacity: 0;
-    transform: translate3d(0, 0, 0) rotate(-22deg);
-  }
-  34% {
-    opacity: 1;
-  }
-  50%, 100% {
-    opacity: 0;
-    transform: translate3d(130vw, 38vh, 0) rotate(-22deg);
-  }
-}
-
-@keyframes constellation-float {
-  0%, 100% { transform: translate(-50%, -68%); }
-  50% { transform: translate(-50%, -74%); }
-}
-
 @keyframes loader-core-float {
   0%, 100% { transform: translate3d(0, 0, 0); }
   50% { transform: translate3d(0, -7px, 0); }
@@ -525,11 +435,6 @@ body.started .start-progress span {
     box-shadow: 0 12px 26px rgba(0,0,0,.24), 0 0 18px rgba(var(--lavender),.16), inset 0 1px 0 rgba(255,255,255,.28);
     border-color: rgba(var(--lavender),.42);
   }
-}
-
-@keyframes star-pop {
-  from { transform: scale(.8); opacity: .55; }
-  to { transform: scale(1.2); opacity: 1; }
 }
 
 @keyframes start-fill {
@@ -1736,12 +1641,6 @@ body.started .now-playing:hover {
     gap: 12px;
   }
 
-  .constellation {
-    width: 168px;
-    height: 132px;
-    opacity: .55;
-  }
-
   .start-button {
     padding: 11px 16px;
     font-size: 13px;
@@ -1913,9 +1812,6 @@ body.started .now-playing:hover {
   .loader-stars::after,
   .loader-core,
   .start-button,
-  .shooting-star,
-  .constellation,
-  .constellation span,
   body::before,
   .now-cover-link::after,
   .now-playing.is-playing .now-cover,

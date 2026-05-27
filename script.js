@@ -819,18 +819,10 @@ function setupBackgroundShader() {
       return 1.0 - smoothstep(0.0, size, distanceToCenter);
     }
 
-    float streak(vec2 point, float seed) {
-      float cycle = fract(u_time * 0.045 + seed);
-      float visible = smoothstep(0.04, 0.12, cycle) * (1.0 - smoothstep(0.42, 0.72, cycle));
-      vec2 direction = normalize(vec2(1.0, -0.34));
-      vec2 normal = vec2(-direction.y, direction.x);
-      vec2 center = vec2(-1.65 + cycle * 3.45, 0.78 - cycle * 0.92 + sin(seed * 8.0) * 0.48);
-      vec2 delta = point - center;
-      float along = dot(delta, direction);
-      float across = abs(dot(delta, normal));
-      float tail = (1.0 - smoothstep(-0.04, 0.36, along)) * smoothstep(-0.08, 0.22, along);
-      float slim = 1.0 - smoothstep(0.0, 0.026, across);
-      return tail * slim * visible;
+    float silk(vec2 point, float offset) {
+      float wave = sin(point.x * 2.8 + point.y * 1.4 + u_time * 0.09 + offset);
+      wave += sin(point.x * -1.7 + point.y * 2.2 - u_time * 0.07 + offset * 1.7) * 0.55;
+      return smoothstep(0.52, 1.15, wave);
     }
 
     void main() {
@@ -838,21 +830,21 @@ function setupBackgroundShader() {
       vec2 p = uv * 2.0 - 1.0;
       p.x *= u_resolution.x / u_resolution.y;
 
-      float slow = u_time * 0.12;
+      float slow = u_time * 0.075;
       float glow = 0.0;
-      glow += orb(p, vec2(sin(slow) * 0.52, cos(slow * 0.7) * 0.34), 1.05) * 0.42;
-      glow += orb(p, vec2(cos(slow * 0.8) * -0.62, sin(slow * 0.55) * 0.42), 0.92) * 0.34;
-      glow += orb(p, vec2(0.08, -0.18), 1.35) * 0.18;
-      float shoot = streak(p, 0.18) + streak(p + vec2(0.22, -0.14), 0.68) * 0.6;
-      glow += shoot * 0.48;
+      glow += orb(p, vec2(sin(slow) * 0.58, cos(slow * 0.7) * 0.28), 1.18) * 0.24;
+      glow += orb(p, vec2(cos(slow * 0.8) * -0.7, sin(slow * 0.55) * 0.38), 1.04) * 0.18;
+      glow += orb(p, vec2(0.0, -0.22), 1.52) * 0.12;
+      float satin = silk(p, 0.4) * 0.08 + silk(p + vec2(0.22, -0.12), 3.1) * 0.045;
+      glow += satin;
 
-      float sheen = sin((p.x * 2.4 + p.y * 1.6) + u_time * 0.18) * 0.5 + 0.5;
-      vec3 lavender = vec3(0.52, 0.34, 1.0);
-      vec3 ice = vec3(0.78, 0.70, 1.0);
+      float sheen = sin((p.x * 1.7 + p.y * 1.2) + u_time * 0.11) * 0.5 + 0.5;
+      vec3 lavender = vec3(0.46, 0.31, 0.86);
+      vec3 ice = vec3(0.72, 0.66, 0.95);
       vec3 color = mix(lavender, ice, sheen) * glow;
-      color += vec3(0.76, 0.68, 1.0) * shoot * 0.72;
+      color += vec3(0.74, 0.68, 1.0) * satin * 0.38;
 
-      gl_FragColor = vec4(color, glow * 0.42 + shoot * 0.24);
+      gl_FragColor = vec4(color, glow * 0.34);
     }
   `;
   const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -990,7 +982,7 @@ function setupParticleField() {
 
   const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
   const particleCaps = { mobile: 200, desktop: 700 };
-  const particleTargets = { mobile: 180, desktop: 420 };
+  const particleTargets = { mobile: 130, desktop: 260 };
   const maxParticleCount = Math.min(particleTargets.desktop, particleCaps.desktop);
   const floatsPerParticle = 6;
   const particleData = new Float32Array(maxParticleCount * floatsPerParticle);
@@ -1013,7 +1005,7 @@ function setupParticleField() {
     const x = seededRandom(index, 1) * 2.18 - 1.09;
     const y = seededRandom(index, 2) * 2.16 - 1.08;
     const depth = Math.pow(seededRandom(index, 3), .72);
-    const size = 1.35 + seededRandom(index, 4) * 2.65;
+    const size = .48 + seededRandom(index, 4) * 1.14;
     const phase = seededRandom(index, 5) * Math.PI * 2;
     const speed = .36 + seededRandom(index, 6) * .56;
     const offset = index * floatsPerParticle;
@@ -1029,50 +1021,6 @@ function setupParticleField() {
     return Math.min(target, cap, maxParticleCount);
   }
 
-  function createConstellationLines(limit) {
-    const aspect = window.innerWidth / Math.max(window.innerHeight, 1);
-    const isMobileBudget = limit <= particleCaps.mobile;
-    const anchorCount = Math.min(isMobileBudget ? 30 : 64, limit);
-    const anchors = particles
-      .slice(0, limit)
-      .map((particle, index) => ({ ...particle, index }))
-      .sort((a, b) => b.depth - a.depth)
-      .slice(0, anchorCount);
-    const pairs = [];
-    const used = new Set();
-    const maxPairs = isMobileBudget ? 36 : 96;
-
-    anchors.forEach((anchor, anchorIndex) => {
-      const closest = anchors
-        .filter((candidate) => candidate.index !== anchor.index)
-        .map((candidate) => ({
-          candidate,
-          distance: Math.hypot((anchor.x - candidate.x) * aspect, anchor.y - candidate.y),
-        }))
-        .filter((item) => item.distance < .62)
-        .sort((a, b) => a.distance - b.distance)
-        .slice(0, anchorIndex % 5 === 0 ? 2 : 1);
-
-      closest.forEach(({ candidate }) => {
-        if (pairs.length / 2 >= maxPairs) {
-          return;
-        }
-
-        const first = Math.min(anchor.index, candidate.index);
-        const second = Math.max(anchor.index, candidate.index);
-        const key = `${first}:${second}`;
-
-        if (!used.has(key)) {
-          used.add(key);
-          pairs.push(first, second);
-        }
-      });
-    });
-
-    return new Uint16Array(pairs);
-  }
-
-  let lineIndices = new Uint16Array();
   const vertexSource = `
     precision mediump float;
     attribute vec2 a_position;
@@ -1096,7 +1044,7 @@ function setupParticleField() {
       vec2 drift = vec2(
         sin(time * 0.38 + a_phase * 1.71),
         cos(time * 0.32 + a_phase * 1.23)
-      ) * 0.034 * depth;
+      ) * 0.026 * depth;
 
       vec2 pointerClip = vec2(u_pointer.x * 2.0 - 1.0, 1.0 - u_pointer.y * 2.0);
       vec2 toPointer = vec2((position.x - pointerClip.x) * u_aspect, position.y - pointerClip.y);
@@ -1105,16 +1053,16 @@ function setupParticleField() {
       vec2 direction = normalize(toPointer + vec2(0.0001, -0.0001));
 
       position += drift;
-      position += vec2(direction.x / u_aspect, direction.y) * reaction * (0.032 + a_depth * 0.028);
-      position += pointerClip * u_pointer.z * (0.006 + a_depth * 0.011);
+      position += vec2(direction.x / u_aspect, direction.y) * reaction * (0.018 + a_depth * 0.016);
+      position += pointerClip * u_pointer.z * (0.003 + a_depth * 0.006);
 
       v_depth = a_depth;
       v_phase = a_phase;
       v_reaction = reaction;
-      v_twinkle = 0.72 + 0.28 * sin(u_time * (0.72 + a_speed * 0.35) + a_phase);
+      v_twinkle = 0.3 + 0.7 * pow(0.5 + 0.5 * sin(u_time * (0.42 + a_speed * 0.25) + a_phase), 2.2);
 
       gl_Position = vec4(position, 0.0, 1.0);
-      gl_PointSize = a_size * (1.8 + a_depth * 2.8) * u_pointScale;
+      gl_PointSize = a_size * (1.05 + a_depth * 1.25) * u_pointScale;
     }
   `;
   const pointFragmentSource = `
@@ -1127,39 +1075,24 @@ function setupParticleField() {
     void main() {
       vec2 point = gl_PointCoord - 0.5;
       float radius = length(point) * 2.0;
-      float core = 1.0 - smoothstep(0.0, 0.32, radius);
-      float halo = 1.0 - smoothstep(0.18, 1.0, radius);
-      float glint = pow(max(0.0, 1.0 - length(point - vec2(-0.12, 0.15)) * 4.2), 4.0);
-      float depthAlpha = 0.34 + v_depth * 0.72;
-      float alpha = (core * 0.74 + halo * (0.18 + v_depth * 0.22) + glint * 0.28) * depthAlpha * v_twinkle;
+      float core = 1.0 - smoothstep(0.0, 0.42, radius);
+      float halo = 1.0 - smoothstep(0.34, 1.0, radius);
+      float glint = pow(max(0.0, 1.0 - length(point - vec2(-0.16, 0.18)) * 5.2), 5.0);
+      float depthAlpha = 0.18 + v_depth * 0.38;
+      float alpha = (core * 0.46 + halo * (0.06 + v_depth * 0.08) + glint * 0.2) * depthAlpha * v_twinkle;
 
-      vec3 lavender = vec3(0.57, 0.42, 1.0);
-      vec3 frost = vec3(1.0, 0.97, 1.0);
-      vec3 shine = vec3(0.82, 0.74, 1.0);
-      vec3 color = mix(lavender, frost, 0.42 + v_depth * 0.42);
-      color += shine * (glint * 0.42 + v_reaction * 0.24);
-      alpha *= 1.0 + v_reaction * 0.55;
+      vec3 lavender = vec3(0.6, 0.46, 1.0);
+      vec3 frost = vec3(0.94, 0.9, 1.0);
+      vec3 shine = vec3(0.78, 0.7, 1.0);
+      vec3 color = mix(lavender, frost, 0.34 + v_depth * 0.36);
+      color += shine * (glint * 0.22 + v_reaction * 0.14);
+      alpha *= 1.0 + v_reaction * 0.34;
 
       if (alpha < 0.01) {
         discard;
       }
 
-      gl_FragColor = vec4(color, alpha * 0.66);
-    }
-  `;
-  const lineFragmentSource = `
-    precision mediump float;
-    uniform float u_time;
-    varying float v_depth;
-    varying float v_phase;
-    varying float v_twinkle;
-    varying float v_reaction;
-
-    void main() {
-      float pulse = 0.52 + 0.48 * sin(u_time * 0.48 + v_phase);
-      float alpha = (0.032 + v_depth * 0.072) * pulse * v_twinkle;
-      vec3 color = mix(vec3(0.48, 0.34, 0.92), vec3(0.9, 0.84, 1.0), v_depth);
-      gl_FragColor = vec4(color + v_reaction * 0.12, alpha * (1.0 + v_reaction * 0.9));
+      gl_FragColor = vec4(color, alpha * 0.42);
     }
   `;
 
@@ -1187,9 +1120,8 @@ function setupParticleField() {
   }
 
   const pointProgram = createProgram(pointFragmentSource);
-  const lineProgram = createProgram(lineFragmentSource);
 
-  if (!pointProgram || !lineProgram) {
+  if (!pointProgram) {
     return;
   }
 
@@ -1213,9 +1145,7 @@ function setupParticleField() {
   }
 
   const pointState = getState(pointProgram);
-  const lineState = getState(lineProgram);
   const particleBuffer = gl.createBuffer();
-  const lineBuffer = gl.createBuffer();
   const stride = floatsPerParticle * Float32Array.BYTES_PER_ELEMENT;
 
   gl.bindBuffer(gl.ARRAY_BUFFER, particleBuffer);
@@ -1233,9 +1163,6 @@ function setupParticleField() {
     }
 
     activeParticleCount = nextParticleCount;
-    lineIndices = createConstellationLines(activeParticleCount);
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, lineBuffer);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, lineIndices, gl.STATIC_DRAW);
   }
 
   function enableAttribute(location, size, offset) {
@@ -1309,13 +1236,6 @@ function setupParticleField() {
     const time = reducedMotion ? 0 : (now - startTime) * 0.001;
 
     gl.clear(gl.COLOR_BUFFER_BIT);
-
-    if (lineIndices.length) {
-      useState(lineState);
-      setUniforms(lineState, time);
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, lineBuffer);
-      gl.drawElements(gl.LINES, lineIndices.length, gl.UNSIGNED_SHORT, 0);
-    }
 
     useState(pointState);
     setUniforms(pointState, time);
